@@ -1,21 +1,17 @@
-﻿namespace MiniRedis.Core.Cache
+﻿public class CacheItem
 {
-    public class CacheItem
+    public string Value { get; }
+    public DateTimeOffset? ExpiresAt { get; }
+
+    public CacheItem(string value, DateTimeOffset? expiresAt)
     {
-        public CacheItem(string value, TimeSpan expiresAt)
-        {
-            Value = value;
-            ExpiresAt = DateTimeOffset.UtcNow.Add(expiresAt);
-        }
+        Value = value;
+        ExpiresAt = expiresAt;
+    }
 
-        public string Value { get; init; } = string.Empty;
-        public DateTimeOffset ExpiresAt { get; init; }
-        public bool IsExpired => DateTimeOffset.UtcNow >= ExpiresAt;
-
-
-        public override string ToString()
-        {
-            return Value;
-        }
+    public bool IsExpired()
+    {
+        return ExpiresAt.HasValue &&
+               ExpiresAt.Value <= DateTimeOffset.UtcNow;
     }
 }

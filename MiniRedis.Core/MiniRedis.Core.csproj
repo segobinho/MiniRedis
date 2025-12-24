@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <Folder Include="Networking\" />
-    <Folder Include="Persistence\" />
   </ItemGroup>
 
 </Project>
