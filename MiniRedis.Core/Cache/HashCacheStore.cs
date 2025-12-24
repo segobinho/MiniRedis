@@ -29,7 +29,7 @@
         public bool Exists(string key)
         {
             var hash = _store[key];
-            if (hash != null && hash.IsExpired == false) return true;
+            if (hash != null && !hash.IsExpired()) return true;
 
             _store.Remove(key);
             return false;
@@ -46,16 +46,21 @@
             return _store[key].Value;
         }
 
-        public void Set(string key, string json, TimeSpan ttl)
+        public void Set(string key, string value, TimeSpan? ttl = null)
         {
-            var cach = new CacheItem(json, ttl);
+            DateTimeOffset? expiresAt = ttl.HasValue
+                ? DateTimeOffset.UtcNow.Add(ttl.Value)
+                : null;
 
-            _store[key] = cach;
+            var cacheItem = new CacheItem(value, expiresAt);
+            _store[key] = cacheItem;
         }
 
-        public IEnumerable<string> GetAllKeys()
+        IEnumerable<KeyValuePair<string, CacheItem>> ICacheStore.GetAll()
         {
-            return _store.Keys;
+            return _store;
         }
+
+       
     }
 }
