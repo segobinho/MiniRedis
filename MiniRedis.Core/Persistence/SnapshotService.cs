@@ -3,7 +3,7 @@ using MiniRedis.Core.Cache;
 
 namespace MiniRedis.Core.Persistence
 {
-    public class SnapshotService
+    public class SnapshotService : ISnapshotService
     {
         private readonly ICacheStore _cache;
         private readonly string _filePath;
