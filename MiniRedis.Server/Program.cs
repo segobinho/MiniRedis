@@ -1,57 +1,57 @@
-﻿using MiniRedis.Core.Cache;
-using MiniRedis.Core.Commands;
-using MiniRedis.Core.Persistence;
-using MiniRedis.Server;
+﻿//using MiniRedis.Core.Cache;
+//using MiniRedis.Core.Commands;
+//using MiniRedis.Core.Persistence;
+//using MiniRedis.Server;
 
-ICacheStore cache = new HashCacheStore();
-var basePath = AppContext.BaseDirectory;
-var snapshotPath = Path.Combine(basePath, "snapshot.json");
-var snapshot = new SnapshotService(cache, snapshotPath);
-var CacheRecovery = new CacheRecoveryService(snapshot, TimeSpan.FromSeconds(10));
-
-
-// Na inicialização
-//snapshot.Load();
-CacheRecovery.Start();
+//ICacheStore cache = new HashCacheStore();
+//var basePath = AppContext.BaseDirectory;
+//var snapshotPath = Path.Combine(basePath, "snapshot.json");
+//var snapshot = new SnapshotService(cache, snapshotPath);
+//var CacheRecovery = new CacheRecoveryService(snapshot, TimeSpan.FromSeconds(10));
 
 
-var parser = new CommandParser();
-var factory = new CommandFactory();
+//// Na inicialização
+////snapshot.Load();
+//CacheRecovery.Start();
 
-CoreCommandRegistration.RegisterAll(factory, cache);
 
-ConsoleStyle.WriteBanner();
-ConsoleStyle.WriteInfo("MiniRedis Server started!");
-ConsoleStyle.WriteInfo("Type commands like: GET key");
-ConsoleStyle.WriteInfo("Type 'exit' to quit.\n");
+//var parser = new CommandParser();
+//var factory = new CommandFactory();
 
-while (true)
-{
-    ConsoleStyle.WritePrompt();
+//CoreCommandRegistration.RegisterAll(factory, cache);
 
-    var input = Console.ReadLine();
+//ConsoleStyle.WriteBanner();
+//ConsoleStyle.WriteInfo("MiniRedis Server started!");
+//ConsoleStyle.WriteInfo("Type commands like: GET key");
+//ConsoleStyle.WriteInfo("Type 'exit' to quit.\n");
 
-    if (input is null)
-        continue;
+//while (true)
+//{
+//    ConsoleStyle.WritePrompt();
 
-    if (input.Equals("exit", StringComparison.OrdinalIgnoreCase))
-        break;
+//    var input = Console.ReadLine();
 
-    try
-    {
-        var tokens = parser.Parse(input);
-        var command = factory.Create(tokens);
+//    if (input is null)
+//        continue;
 
-        var result = command.Execute();
-        ConsoleStyle.WriteResult(result);
-    }
-    catch (Exception ex)
-    {
-        ConsoleStyle.WriteError(ex.Message);
-    }
-}
-CacheRecovery.Stop();
-snapshot.Save();
+//    if (input.Equals("exit", StringComparison.OrdinalIgnoreCase))
+//        break;
+
+//    try
+//    {
+//        var tokens = parser.Parse(input);
+//        var command = factory.Create(tokens);
+
+//        var result = command.Execute();
+//        ConsoleStyle.WriteResult(result);
+//    }
+//    catch (Exception ex)
+//    {
+//        ConsoleStyle.WriteError(ex.Message);
+//    }
+//}
+//CacheRecovery.Stop();
+//snapshot.Save();
 
 
 
@@ -162,89 +162,95 @@ snapshot.Save();
 
 
 
-//using MiniRedis.Core.Cache;
-//using MiniRedis.Core.Commands;
-//using MiniRedis.Core.Persistence;
-//using MiniRedis.Server;
 
-//// ===============================
-//// Infra / Core
-//// ===============================
 
-//ICacheStore cache = new HashCacheStore();
 
-//var basePath = AppContext.BaseDirectory;
-//var snapshotPath = Path.Combine(basePath, "snapshot.json");
 
-//// Snapshot + recovery
-//var snapshotService = new SnapshotService(cache, snapshotPath);
-//var cacheRecovery = new CacheRecoveryService(
-//    snapshotService,
-//    TimeSpan.FromSeconds(10)
-//);
 
-//// ===============================
-//// Inicialização
-//// ===============================
 
-//// 1️⃣ Carrega snapshot inicial
-//snapshotService.Load();
+using MiniRedis.Core.Cache;
+using MiniRedis.Core.Commands;
+using MiniRedis.Core.Persistence;
+using MiniRedis.Server;
 
-//// 2️⃣ Inicia snapshot periódico
-//cacheRecovery.Start();
+// ===============================
+// Infra / Core
+// ===============================
 
-//// ===============================
-//// Commands
-//// ===============================
+ICacheStore cache = new HashCacheStore();
 
-//var parser = new CommandParser();
-//var factory = new CommandFactory();
-//CoreCommandRegistration.RegisterAll(factory, cache);
-//// ===============================
-//// TCP Server
-//// ===============================
+var basePath = AppContext.BaseDirectory;
+var snapshotPath = Path.Combine(basePath, "snapshot.json");
 
-//var server = new TcpRedisServer(
-//    port: 6379,
-//    sessionFactory: () => new ClientSession(parser, factory)
-//);
+// Snapshot + recovery
+var snapshotService = new SnapshotService(cache, snapshotPath);
+var cacheRecovery = new CacheRecoveryService(
+    snapshotService,
+    TimeSpan.FromSeconds(10)
+);
 
-//// ===============================
-//// Lifecycle
-//// ===============================
+// ===============================
+// Inicialização
+// ===============================
 
-//using var cts = new CancellationTokenSource();
+// 1️⃣ Carrega snapshot inicial
+snapshotService.Load();
 
-//// CTRL + C
-//Console.CancelKeyPress += (s, e) =>
-//{
-//    e.Cancel = true;
-//    cts.Cancel();
-//};
+// 2️⃣ Inicia snapshot periódico
+cacheRecovery.Start();
 
-//ConsoleStyle.WriteBanner();
-//ConsoleStyle.WriteInfo("MiniRedis TCP Server started!");
-//ConsoleStyle.WriteInfo("Listening on port 6379");
+// ===============================
+// Commands
+// ===============================
 
-//// 🔥 START DO SERVIDOR (BACKGROUND)
-//_ = server.StartAsync(cts.Token);
+var parser = new CommandParser();
+var factory = new CommandFactory();
+CoreCommandRegistration.RegisterAll(factory, cache);
+// ===============================
+// TCP Server
+// ===============================
 
-//// ===============================
-//// Mantém app viva
-//// ===============================
+var server = new TcpRedisServer(
+    port: 6379,
+    sessionFactory: () => new ClientSession(parser, factory)
+);
 
-//Console.WriteLine("Press ENTER to shutdown...");
-//Console.ReadLine();
+// ===============================
+// Lifecycle
+// ===============================
 
-//// ===============================
-//// Shutdown limpo
-//// ===============================
+using var cts = new CancellationTokenSource();
 
-//cts.Cancel();
+// CTRL + C
+Console.CancelKeyPress += (s, e) =>
+{
+    e.Cancel = true;
+    cts.Cancel();
+};
 
-//cacheRecovery.Stop();
-//snapshotService.Save();
-//server.Stop();
+ConsoleStyle.WriteBanner();
+ConsoleStyle.WriteInfo("MiniRedis TCP Server started!");
+ConsoleStyle.WriteInfo("Listening on port 6379");
 
-//ConsoleStyle.WriteInfo("MiniRedis stopped.");
+// 🔥 START DO SERVIDOR (BACKGROUND)
+_ = server.StartAsync(cts.Token);
+
+// ===============================
+// Mantém app viva
+// ===============================
+
+Console.WriteLine("Press ENTER to shutdown...");
+Console.ReadLine();
+
+// ===============================
+// Shutdown limpo
+// ===============================
+
+cts.Cancel();
+
+cacheRecovery.Stop();
+snapshotService.Save();
+server.Stop();
+
+ConsoleStyle.WriteInfo("MiniRedis stopped.");
 
