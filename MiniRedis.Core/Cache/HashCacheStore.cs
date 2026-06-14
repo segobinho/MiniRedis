@@ -1,66 +1,87 @@
-﻿namespace MiniRedis.Core.Cache
+namespace MiniRedis.Core.Cache
 {
     public class HashCacheStore : ICacheStore
     {
+        private readonly RedisDict _dict = new();
+        private readonly ReaderWriterLockSlim _lock = new(LockRecursionPolicy.NoRecursion);
 
-        public long Count => _store.Count();
-
-        private readonly Dictionary<string, CacheItem> _store = new();
-
-        public HashCacheStore(Dictionary<string, CacheItem> store)
+        public long Count
         {
-            _store = store;
+            get
+            {
+                _lock.EnterReadLock();
+                try { return _dict.Count; }
+                finally { _lock.ExitReadLock(); }
+            }
         }
 
-        public HashCacheStore()
+        public void Set(string key, string json, TimeSpan? ttl = null)
         {
+            DateTimeOffset? expiresAt = ttl.HasValue ? DateTimeOffset.UtcNow.Add(ttl.Value) : null;
+            var item = new CacheItem(json, expiresAt);
 
-        }
-        public void Clear()
-        {
-            _store.Clear();
-        }
-
-        public void Delete(string key)
-        {
-            _store.Remove(key);
-        }
-
-        public bool Exists(string key)
-        {
-            var hash = _store[key];
-            if (hash != null && !hash.IsExpired()) return true;
-
-            _store.Remove(key);
-            return false;
+            _lock.EnterWriteLock();
+            try { _dict.Set(key, item); }
+            finally { _lock.ExitWriteLock(); }
         }
 
         public string? Get(string key)
         {
-            if (!_store.ContainsKey(key))
+            _lock.EnterReadLock();
+            bool found = _dict.TryGetValue(key, out var item);
+            _lock.ExitReadLock();
+
+            if (!found) return null;
+
+            if (item.IsExpired())
             {
+                _lock.EnterWriteLock();
+                try { _dict.Remove(key); }
+                finally { _lock.ExitWriteLock(); }
                 return null;
             }
 
-
-            return _store[key].Value;
+            return item.Value;
         }
 
-        public void Set(string key, string value, TimeSpan? ttl = null)
+        public void Delete(string key)
         {
-            DateTimeOffset? expiresAt = ttl.HasValue
-                ? DateTimeOffset.UtcNow.Add(ttl.Value)
-                : null;
-
-            var cacheItem = new CacheItem(value, expiresAt);
-            _store[key] = cacheItem;
+            _lock.EnterWriteLock();
+            try { _dict.Remove(key); }
+            finally { _lock.ExitWriteLock(); }
         }
 
-        IEnumerable<KeyValuePair<string, CacheItem>> ICacheStore.GetAll()
+        public bool Exists(string key)
         {
-            return _store;
+            _lock.EnterReadLock();
+            bool found = _dict.TryGetValue(key, out var item);
+            _lock.ExitReadLock();
+
+            if (!found) return false;
+
+            if (item.IsExpired())
+            {
+                _lock.EnterWriteLock();
+                try { _dict.Remove(key); }
+                finally { _lock.ExitWriteLock(); }
+                return false;
+            }
+
+            return true;
         }
 
-       
+        public void Clear()
+        {
+            _lock.EnterWriteLock();
+            try { _dict.Clear(); }
+            finally { _lock.ExitWriteLock(); }
+        }
+
+        public IEnumerable<KeyValuePair<string, CacheItem>> GetAll()
+        {
+            _lock.EnterReadLock();
+            try { return _dict.ToList(); }
+            finally { _lock.ExitReadLock(); }
+        }
     }
 }

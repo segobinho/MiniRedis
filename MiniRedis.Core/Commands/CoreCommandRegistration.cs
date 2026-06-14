@@ -19,6 +19,8 @@ namespace MiniRedis.Core.Commands
 
             factory.Register("clear", _ =>
                  new ClearCommand(store));
+
+            factory.Register("ping", _ => new PingCommand());
         }
     }
 }
